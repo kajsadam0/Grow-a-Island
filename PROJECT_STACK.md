@@ -1,0 +1,3 @@
+FOR AI!
+
+Use Rojo. Use Rokit. Use Wally. Approved libraries: ProfileStore Trove Component TypedRemote Fusion Cmdr Do not introduce another framework without asking. The client requests. The server validates and decides. Use CollectionService tags instead of hardcoded Workspace paths. Only DataService may access ProfileStore. Use Fusion for UI. Use Roblox built-ins for: TweenService Lighting ParticleEmitter Beam Animation MarketplaceService

@@ -1,0 +1,30 @@
+[package]
+name = "adam/grow-a-island"
+description = "Grow a Tiny Island in Roblox experience"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+private = true
+
+[dependencies]
+Trove = "sleitnick/trove@1.8.0"
+# Trove removes instances, cleans up events and tasks
+
+Component = "sleitnick/component@2.4.8"
+# Adds reusable behaivour using components
+
+TypedRemote = "sleitnick/typed-remote@0.3.0"
+# Typed remote keeps clean connection between the server and the client
+
+Shake = "sleitnick/shake@1.1.0"
+# Useful when you add weather impacts / camera reactions:
+
+Fusion = "elttob/fusion@0.3.0"
+# The only UI framework for HUD, shop, inventory and popups
+
+Cmdr = "evaera/cmdr@1.12.0"
+
+[server-dependencies]
+ProfileStore = "lm-loleris/profilestore@1.0.3"
+# Profile sotre manages cash, inventory, generaly player data
+
