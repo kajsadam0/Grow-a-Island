@@ -60,6 +60,7 @@ function GameService.new()
 	self._conveyor = {} :: { [string]: ConveyorRecord }
 	self._chests = {} :: { [string]: ChestRecord }
 	self._oxygen = {} :: { [Player]: OxygenRecord }
+	self._clientReady = {} :: { [Player]: boolean }
 	self._cooldowns = {} :: { [Player]: { [string]: number } }
 	self._busy = {} :: { [Player]: { [string]: boolean } }
 	self._random = Random.new()
@@ -70,7 +71,9 @@ function GameService.new()
 end
 
 function GameService:_toast(player: Player, kind: string, message: string)
-	Remotes.Toast:FireClient(player, kind, message)
+	if self._clientReady[player] then
+		Remotes.Toast:FireClient(player, kind, message)
+	end
 end
 
 function GameService:_getRoot(player: Player): BasePart?
@@ -163,7 +166,7 @@ function GameService:_getState(player: Player): ClientState
 end
 
 function GameService:_pushState(player: Player)
-	if self:_isOwnerReady(player) then
+	if self._clientReady[player] and self:_isOwnerReady(player) then
 		Remotes.StateChanged:FireClient(player, self:_getState(player) :: any)
 	end
 end
@@ -349,7 +352,15 @@ function GameService:_collectCoconut(player: Player, pickupId: string)
 	if type(pickupId) ~= "string" or #pickupId > 40 then return end
 	local record = self._pickups[pickupId]
 	local data = DataService.Get(player)
-	if not record or not record.Available or not data or not record.Instance.Parent or not self:_isNear(player, record.Instance, 10) then return end
+	if not record or not data or not record.Instance.Parent then return end
+	if not record.Available then
+		self:_toast(player, "Info", "That coconut is still falling.")
+		return
+	end
+	if not self:_isNear(player, record.Instance, 10) then
+		self:_toast(player, "Info", "Move closer to collect that coconut.")
+		return
+	end
 	if data.CarriedCoconuts >= EconomyConfig.Coconut.CarryCapacity then
 		self:_toast(player, "Warning", "Your hands are full. Sell or store coconuts first.")
 		return
@@ -539,7 +550,10 @@ function GameService:_updateProduction(now: number)
 			local dropRatio = math.clamp((now - pickup.SpawnedAt) / 0.8, 0, 1)
 			local eased = 1 - (1 - dropRatio) * (1 - dropRatio)
 			pickup.Instance.CFrame = CFrame.new(pickup.GroundPosition + Vector3.new(0, (1 - eased) * 6.7, 0))
-			if dropRatio >= 1 then pickup.Available = true end
+			if dropRatio >= 1 then
+				pickup.Available = true
+				self._world:EnableCoconutPickup(pickup.Instance, id)
+			end
 		end
 	end
 	for id, record in pairs(self._conveyor) do
@@ -600,7 +614,7 @@ function GameService:_updateOxygen(now: number)
 		record.Underwater = false
 		player:LoadCharacter()
 		self:_toast(player, "Warning", "Out of oxygen — returned safely to your island.")
-	elseif changed or now - record.LastPushedAt >= 0.2 then
+	elseif changed or (underwater and now - record.LastPushedAt >= 0.2) then
 		record.LastPushedAt = now
 		self:_pushState(player)
 	end
@@ -608,6 +622,9 @@ end
 
 function GameService:Start()
 	Remotes.GetInitialState.OnServerInvoke = function(player)
+		-- The client connects its listeners before invoking this function. Do not
+		-- enqueue state events for a client which has failed to finish booting.
+		self._clientReady[player] = true
 		return self:_getState(player) :: any
 	end
 	self._trove:Connect(Remotes.BuyCoconutPalm.OnServerEvent, function(player) self:_handle(player, "BuyCoconutPalm") end)
@@ -652,6 +669,7 @@ function GameService:Start()
 		self._cooldowns[player] = nil
 		self._busy[player] = nil
 		self._oxygen[player] = nil
+		self._clientReady[player] = nil
 		DataService.Release(player)
 		if self._owner == player then
 			self._owner = nil

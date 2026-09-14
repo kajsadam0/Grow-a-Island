@@ -3,8 +3,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Fusion = require(ReplicatedStorage.Packages.Fusion)
-local Button = require(script.Components.Button)
-local Panel = require(script.Components.Panel)
+-- Components live beside App in the UI folder, not inside this ModuleScript.
+local Button = require(script.Parent.Components.Button)
+local Panel = require(script.Parent.Components.Panel)
 
 local App = {}
 

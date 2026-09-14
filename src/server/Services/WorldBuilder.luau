@@ -17,6 +17,9 @@ WorldBuilder.WaterSurfaceY = -4
 WorldBuilder.OceanRadius = 205
 WorldBuilder.TravelStart = Vector3.new(-13, 4.2, 1)
 WorldBuilder.TravelEnd = Vector3.new(14, 4.2, 0)
+-- Set this Workspace attribute to true once an authored Terrain map supplies its
+-- own island and water. The prototype generator will then leave that terrain intact.
+WorldBuilder.UseAuthoredTerrainAttribute = "GrowAnIslandUseAuthoredTerrain"
 
 local colors = {
 	Sand = Color3.fromRGB(244, 214, 147),
@@ -184,7 +187,6 @@ function WorldBuilder:_buildTile(tileId: string, biome: string, position: Vector
 		marker:SetAttribute("TileId", tileId)
 		addTag(marker, "ExpansionTile")
 		self:_prompt(marker, "BuyExpansionTile", tileId, "Claim tile", "Connected island tile", 12)
-		label(marker, "EXPAND", Color3.fromRGB(255, 237, 146))
 		return
 	end
 	local seed = decorationSeed(tileId)
@@ -212,7 +214,9 @@ function WorldBuilder:_buildTile(tileId: string, biome: string, position: Vector
 end
 
 function WorldBuilder:_buildWorldShell()
-	Terrain:FillBlock(CFrame.new(0, -17, 0), Vector3.new(430, 26, 430), Enum.Material.Water)
+	if workspace:GetAttribute(WorldBuilder.UseAuthoredTerrainAttribute) ~= true then
+		Terrain:FillBlock(CFrame.new(0, -17, 0), Vector3.new(430, 26, 430), Enum.Material.Water)
+	end
 	local root = Instance.new("Folder")
 	root.Name = "GrowAnIslandWorld"
 	root.Parent = workspace
@@ -421,9 +425,15 @@ function WorldBuilder:SpawnCoconut(id: string, position: Vector3, conveyor: bool
 		addTag(coconut, "Travelator")
 	else
 		addTag(coconut, "CoconutPickup")
-		self:_prompt(coconut, "CollectCoconut", id, "Pick up", "Fresh coconut", 9)
 	end
 	return coconut
+end
+
+-- A coconut is intentionally not interactable while it is still falling.
+-- Adding the prompt only after landing avoids an action that the server must reject.
+function WorldBuilder:EnableCoconutPickup(coconut: BasePart, id: string)
+	if not coconut.Parent or coconut:FindFirstChildOfClass("ProximityPrompt") then return end
+	self:_prompt(coconut, "CollectCoconut", id, "Pick up", "Fresh coconut", 9)
 end
 
 function WorldBuilder:SpawnChest(id: string, position: Vector3): Part
